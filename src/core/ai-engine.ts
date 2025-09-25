@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
-import { AIResponse, Config, IconInfo } from '../types/index.js';
+import OpenAI from "openai";
+import { AIResponse, Config, IconInfo } from "../types/index.js";
 
 export class AIAnalysisEngine {
   private openai: OpenAI;
@@ -14,22 +14,26 @@ export class AIAnalysisEngine {
 
   async analyzeIcon(iconInfo: IconInfo): Promise<AIResponse> {
     const prompt = this.buildPrompt(iconInfo);
-    
+
+    console.log("prompt: ", prompt);
+
     try {
       const response = await this.openai.chat.completions.create({
         model: this.config.ai.model,
         messages: [
           {
-            role: 'user',
+            role: "user",
             content: [
               {
-                type: 'text',
+                type: "text",
                 text: prompt,
               },
               {
-                type: 'image_url',
+                type: "image_url",
                 image_url: {
-                  url: `data:image/svg+xml;base64,${Buffer.from(iconInfo.content).toString('base64')}`,
+                  url: `data:image/svg+xml;base64,${Buffer.from(
+                    iconInfo.content
+                  ).toString("base64")}`,
                 },
               },
             ],
@@ -41,12 +45,12 @@ export class AIAnalysisEngine {
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new Error('No response from AI');
+        throw new Error("No response from AI");
       }
 
       return this.parseAIResponse(content);
     } catch (error) {
-      console.error('AI Analysis failed:', error);
+      console.error("AI Analysis failed:", error);
       throw new Error(`AI analysis failed: ${error}`);
     }
   }
@@ -54,8 +58,8 @@ export class AIAnalysisEngine {
   private buildPrompt(iconInfo: IconInfo): string {
     const categories = Object.keys(this.config.categories);
     const categoryDescriptions = Object.entries(this.config.categories)
-      .map(([cat, subcats]) => `- ${cat}: ${subcats.join(', ')}`)
-      .join('\n');
+      .map(([cat, subcats]) => `- ${cat}: ${subcats.join(", ")}`)
+      .join("\n");
 
     return `Analyze this SVG icon and classify it according to the following categories:
 
@@ -83,19 +87,20 @@ Respond in JSON format:
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in AI response');
+        throw new Error("No JSON found in AI response");
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      
+
       return {
-        category: parsed.category || 'uncategorized',
+        category: parsed.category || "uncategorized",
         tags: Array.isArray(parsed.tags) ? parsed.tags : [],
-        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
-        reasoning: parsed.reasoning || '',
+        confidence:
+          typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
+        reasoning: parsed.reasoning || "",
       };
     } catch (error) {
-      console.error('Failed to parse AI response:', content);
+      console.error("Failed to parse AI response:", content);
       throw new Error(`Failed to parse AI response: ${error}`);
     }
   }
@@ -103,7 +108,7 @@ Respond in JSON format:
   async batchAnalyze(icons: IconInfo[]): Promise<Map<string, AIResponse>> {
     const results = new Map<string, AIResponse>();
     const batchSize = this.config.ai.maxConcurrent;
-    
+
     for (let i = 0; i < icons.length; i += batchSize) {
       const batch = icons.slice(i, i + batchSize);
       const promises = batch.map(async (icon) => {
@@ -112,14 +117,14 @@ Respond in JSON format:
           return { id: icon.id, result };
         } catch (error) {
           console.error(`Failed to analyze icon ${icon.filename}:`, error);
-          return { 
-            id: icon.id, 
+          return {
+            id: icon.id,
             result: {
-              category: 'error',
+              category: "error",
               tags: [],
               confidence: 0,
               reasoning: `Analysis failed: ${error}`,
-            }
+            },
           };
         }
       });

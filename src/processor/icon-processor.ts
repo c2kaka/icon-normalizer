@@ -1,7 +1,7 @@
 import ora from "ora";
 import * as path from "path";
 import { defaultConfig } from "../config/index.js";
-import { AIAnalysisEngine } from "../core/ai-engine.js";
+import { AIEngineFactory } from "../core/ai-engine-factory.js";
 import { DuplicateDetector } from "../core/duplicate-detector.js";
 import {
   DuplicateGroup,
@@ -15,7 +15,7 @@ import { SVGUtils } from "../utils/svg-utils.js";
 
 export class IconProcessor {
   private options: ProcessingOptions;
-  private aiEngine: AIAnalysisEngine;
+  private aiEngine: any; // 使用any类型以支持不同的AI引擎
   private duplicateDetector: DuplicateDetector;
   private config = defaultConfig;
 
@@ -29,7 +29,7 @@ export class IconProcessor {
       ...options,
     };
 
-    this.aiEngine = new AIAnalysisEngine(this.config);
+    this.aiEngine = AIEngineFactory.createEngine(this.config);
     this.duplicateDetector = new DuplicateDetector(this.options);
   }
 
@@ -39,6 +39,15 @@ export class IconProcessor {
     const errors: string[] = [];
 
     try {
+      // 检查AI服务是否可用
+      spinner.text = "Checking AI service...";
+      const serviceCheck = await AIEngineFactory.checkService(this.config);
+      if (!serviceCheck.available) {
+        spinner.fail("AI service check failed");
+        throw new Error(serviceCheck.message || "AI service unavailable");
+      }
+      spinner.text = "AI service is ready";
+
       // Scan for SVG files (排除备份和输出目录)
       spinner.text = "Scanning for SVG files...";
       const excludeDirs = ["backup", "duplicates"];
@@ -91,7 +100,7 @@ export class IconProcessor {
         console.log(`Total unique icons analyzed: ${uniqueIcons.length}`);
         console.log(`Analysis results returned: ${analysisResults.size}`);
 
-        analysisResults.forEach((result, iconId) => {
+        analysisResults.forEach((result: any, iconId: string) => {
           const icon = uniqueIcons.find((i) => i.id === iconId);
           console.log(`\n🔍 ${icon?.filename || iconId}:`);
           console.log(`  Category: ${result.category}`);

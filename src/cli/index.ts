@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import { IconProcessor } from '../processor/icon-processor.js';
 import { ProcessingOptions } from '../types/index.js';
 import { defaultConfig } from '../config/index.js';
+import { AIEngineFactory } from '../core/ai-engine-factory.js';
 
 const program = new Command();
 
@@ -23,15 +24,35 @@ program
   .option('-c, --concurrent <number>', 'Maximum concurrent AI requests', '3')
   .option('-v, --verbose', 'Enable verbose output')
   .option('--dry-run', 'Preview changes without modifying files')
+  .option('--provider <provider>', 'AI provider (openai|ollama)', process.env.AI_PROVIDER || 'openai')
+  .option('--model <model>', 'AI model name')
+  .option('--base-url <url>', 'Ollama service URL', process.env.OLLAMA_BASE_URL)
   .action(async (inputDir: string, options) => {
     try {
       console.log(chalk.blue('🚀 Starting icon processing...'));
       console.log(chalk.gray(`Input directory: ${inputDir}`));
+      console.log(chalk.gray(`AI Provider: ${options.provider}`));
 
-      // Validate OpenAI API key
-      if (!defaultConfig.ai.apiKey) {
-        console.error(chalk.red('❌ OpenAI API key not found. Please set OPENAI_API_KEY environment variable.'));
-        process.exit(1);
+      // 动态更新配置
+      if (options.provider === 'ollama') {
+        // 对于Ollama，不需要API密钥检查
+        if (options.model) {
+          defaultConfig.ai.model = options.model;
+        }
+        if (options.baseUrl) {
+          defaultConfig.ai.baseUrl = options.baseUrl;
+        }
+        defaultConfig.ai.provider = 'ollama';
+      } else {
+        // 对于OpenAI，检查API密钥
+        if (!defaultConfig.ai.apiKey) {
+          console.error(chalk.red('❌ OpenAI API key not found. Please set OPENAI_API_KEY environment variable.'));
+          process.exit(1);
+        }
+        if (options.model) {
+          defaultConfig.ai.model = options.model;
+        }
+        defaultConfig.ai.provider = 'openai';
       }
 
       const processingOptions: ProcessingOptions = {
@@ -77,6 +98,16 @@ program
 
     } catch (error) {
       console.error(chalk.red(`❌ Error: ${error}`));
+      
+      // 提供帮助信息
+      if (error instanceof Error && (error.message.includes('Ollama') || error.message.includes('ollama'))) {
+        console.log(chalk.yellow('\n💡 Ollama Help:'));
+        console.log(chalk.yellow(AIEngineFactory.getProviderHelp('ollama')));
+      } else if (error instanceof Error && (error.message.includes('API key') || error.message.includes('OpenAI'))) {
+        console.log(chalk.yellow('\n💡 OpenAI Help:'));
+        console.log(chalk.yellow(AIEngineFactory.getProviderHelp('openai')));
+      }
+      
       process.exit(1);
     }
   });
@@ -103,6 +134,43 @@ program
     } catch (error) {
       console.error(chalk.red(`❌ Error: ${error}`));
       process.exit(1);
+    }
+  });
+
+program
+  .command('check')
+  .description('Check AI service availability')
+  .option('--provider <provider>', 'AI provider to check (openai|ollama)', process.env.AI_PROVIDER || 'openai')
+  .action(async (options) => {
+    console.log(chalk.blue('🔍 Checking AI service availability...'));
+    
+    // 临时配置用于检查
+    const checkConfig = { ...defaultConfig };
+    checkConfig.ai.provider = options.provider;
+    
+    const result = await AIEngineFactory.checkService(checkConfig);
+    
+    if (result.available) {
+      console.log(chalk.green('✅ AI service is available!'));
+      
+      if (options.provider === 'ollama') {
+        // 显示可用模型
+        try {
+          const engine = AIEngineFactory.createEngine(checkConfig);
+          if ('getAvailableModels' in engine) {
+            const models = await (engine as any).getAvailableModels();
+            console.log(chalk.cyan(`📋 Available models: ${models.join(', ')}`));
+          }
+        } catch (error) {
+          console.log(chalk.yellow('⚠️  Could not fetch model list'));
+        }
+      }
+    } else {
+      console.log(chalk.red('❌ AI service is not available'));
+      console.log(chalk.yellow(result.message));
+      
+      console.log(chalk.cyan('\n💡 Configuration help:'));
+      console.log(chalk.yellow(AIEngineFactory.getProviderHelp(options.provider)));
     }
   });
 

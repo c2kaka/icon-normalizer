@@ -52,6 +52,8 @@ export interface Config {
     apiKey: string;
     maxConcurrent: number;
     timeout: number;
+    provider: 'openai' | 'ollama';  // AI服务提供商
+    baseUrl?: string;              // Ollama服务地址
   };
   processing: {
     outputDir: string;

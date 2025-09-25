@@ -1,14 +1,16 @@
 # Icon Normalizer MVP
 
-AI-powered SVG icon classification and deduplication tool.
+AI-powered SVG icon classification and deduplication tool with support for both cloud and local AI models.
 
 ## Features
 
-- **AI Classification**: Uses OpenAI GPT-4 Vision to categorize icons
-- **Duplicate Detection**: Finds exact and similar duplicates
+- **Multi-AI Support**: OpenAI GPT-4 Vision (cloud) or Ollama (local)
+- **AI Classification**: Advanced icon categorization using vision models
+- **Duplicate Detection**: Finds exact and similar duplicates with configurable thresholds
 - **Metadata Embedding**: Embeds classification results directly into SVG files
-- **Batch Processing**: Process hundreds of icons efficiently
+- **Batch Processing**: Process hundreds of icons efficiently with concurrency control
 - **Local Execution**: Runs locally without complex infrastructure
+- **Privacy-Friendly**: Use local models with Ollama for sensitive projects
 
 ## Installation
 
@@ -31,13 +33,42 @@ yarn run build
 
 ## Quick Start
 
+### Choose Your AI Provider
+
+**Option 1: OpenAI (Cloud)**
+```bash
+# Set your OpenAI API key
+export OPENAI_API_KEY=your_key_here
+
+# Process with OpenAI
+yarn run dev process ./sample-icons --provider openai
+```
+
+**Option 2: Ollama (Local)**
+```bash
+# Install Ollama and download model
+ollama pull llava
+
+# Process with local AI
+yarn run dev process ./sample-icons --provider ollama
+```
+
+**Check service availability:**
+```bash
+# Check OpenAI
+yarn run dev check --provider openai
+
+# Check Ollama
+yarn run dev check --provider ollama
+```
+
 **Try with sample icons:**
 ```bash
 # Process included sample icons
 yarn run dev process ./sample-icons
 
 # Or with custom options
-yarn run dev process ./sample-icons --output ./processed --verbose
+yarn run dev process ./sample-icons --output ./processed --verbose --provider ollama
 ```
 
 This will:
@@ -51,6 +82,7 @@ This will:
 ```
 🚀 Starting icon processing...
 Input directory: ./sample-icons
+AI Provider: ollama
 
 ✅ Processing completed!
 📊 Results:
