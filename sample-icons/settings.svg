@@ -1,5 +1,0 @@
-<!-- 设置图标 - 操作类图标 -->
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M12.22 2H4.22C3.67477 2 3.15186 2.21625 2.76906 2.59906C2.38625 2.98186 2.17 3.50477 2.17 4.05V20.05C2.17 20.5952 2.38625 21.1181 2.76906 21.5009C3.15186 21.8838 3.67477 22.1 4.22 22.1H20.22C20.7652 22.1 21.2881 21.8838 21.6709 21.5009C22.0538 21.1181 22.27 20.5952 22.27 20.05V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M9.22 17.05L12.22 14.05L15.22 17.05M12.22 6.05V14.05" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

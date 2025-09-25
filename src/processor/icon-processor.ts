@@ -1,19 +1,17 @@
-import fs from 'fs-extra';
-import * as path from 'path';
-import { 
-  AnalysisResult, 
-  IconInfo, 
-  ProcessingOptions, 
-  ProcessingResult, 
-  DuplicateGroup 
-} from '../types/index.js';
-import { FileUtils } from '../utils/file-utils.js';
-import { SVGUtils } from '../utils/svg-utils.js';
-import { CryptoUtils } from '../utils/crypto-utils.js';
-import { AIAnalysisEngine } from '../core/ai-engine.js';
-import { DuplicateDetector } from '../core/duplicate-detector.js';
-import { defaultConfig } from '../config/index.js';
-import ora from 'ora';
+import ora from "ora";
+import * as path from "path";
+import { defaultConfig } from "../config/index.js";
+import { AIAnalysisEngine } from "../core/ai-engine.js";
+import { DuplicateDetector } from "../core/duplicate-detector.js";
+import {
+  DuplicateGroup,
+  IconInfo,
+  ProcessingOptions,
+  ProcessingResult,
+} from "../types/index.js";
+import { CryptoUtils } from "../utils/crypto-utils.js";
+import { FileUtils } from "../utils/file-utils.js";
+import { SVGUtils } from "../utils/svg-utils.js";
 
 export class IconProcessor {
   private options: ProcessingOptions;
@@ -23,7 +21,7 @@ export class IconProcessor {
 
   constructor(options: ProcessingOptions = {}) {
     this.options = {
-      outputDir: './processed',
+      outputDir: "./processed",
       backup: true,
       similarityThreshold: 0.8,
       maxConcurrent: 3,
@@ -37,47 +35,87 @@ export class IconProcessor {
 
   async processDirectory(inputDir: string): Promise<ProcessingResult> {
     const startTime = Date.now();
-    const spinner = ora('Processing icons...').start();
+    const spinner = ora("Processing icons...").start();
     const errors: string[] = [];
 
     try {
-      // Scan for SVG files
-      spinner.text = 'Scanning for SVG files...';
-      const svgFiles = await FileUtils.scanDirectory(inputDir);
-      
+      // Scan for SVG files (排除备份和输出目录)
+      spinner.text = "Scanning for SVG files...";
+      const excludeDirs = ["backup", "duplicates"];
+      // 动态排除用户指定的输出目录
+      if (this.options.outputDir) {
+        const outputDirName = path.basename(
+          path.resolve(this.options.outputDir)
+        );
+        excludeDirs.push(outputDirName);
+      }
+      const svgFiles = await FileUtils.scanDirectory(
+        inputDir,
+        true,
+        excludeDirs
+      );
+
       if (svgFiles.length === 0) {
-        spinner.warn('No SVG files found in the specified directory');
+        spinner.warn("No SVG files found in the specified directory");
         return {
           totalIcons: 0,
           processedIcons: 0,
           duplicates: [],
           processingTime: Date.now() - startTime,
-          errors: ['No SVG files found'],
+          errors: ["No SVG files found"],
         };
       }
 
       // Create backup if enabled
       if (this.options.backup) {
-        spinner.text = 'Creating backup...';
+        spinner.text = "Creating backup...";
         await this.createBackup(inputDir, svgFiles);
       }
 
       // Load icon information
-      spinner.text = 'Loading icon information...';
+      spinner.text = "Loading icon information...";
       const icons = await this.loadIcons(svgFiles);
 
       // Find duplicates
-      spinner.text = 'Finding duplicates...';
+      spinner.text = "Finding duplicates...";
       const duplicates = await this.duplicateDetector.findDuplicates(icons);
 
       // Analyze unique icons with AI
-      spinner.text = 'Analyzing icons with AI...';
+      spinner.text = "Analyzing icons with AI...";
       const uniqueIcons = this.getUniqueIcons(icons, duplicates);
       const analysisResults = await this.aiEngine.batchAnalyze(uniqueIcons);
 
+      // 记录AI分析结果
+      if (this.options.verbose) {
+        console.log("\n📊 AI Analysis Results:");
+        console.log(`Total unique icons analyzed: ${uniqueIcons.length}`);
+        console.log(`Analysis results returned: ${analysisResults.size}`);
+
+        analysisResults.forEach((result, iconId) => {
+          const icon = uniqueIcons.find((i) => i.id === iconId);
+          console.log(`\n🔍 ${icon?.filename || iconId}:`);
+          console.log(`  Category: ${result.category}`);
+          console.log(`  Tags: [${result.tags.join(", ")}]`);
+          console.log(`  Confidence: ${(result.confidence * 100).toFixed(1)}%`);
+          if (result.reasoning) {
+            console.log(`  Reasoning: ${result.reasoning}`);
+          }
+        });
+      } else {
+        // 简化版日志
+        console.log(
+          `\n📊 Analyzed ${analysisResults.size}/${uniqueIcons.length} unique icons with AI`
+        );
+      }
+
       // Process and save results
-      spinner.text = 'Processing and saving results...';
-      const processedIcons = await this.processAndSaveResults(icons, analysisResults, duplicates, inputDir);
+      spinner.text = "Processing and saving results...";
+      const processedIcons = await this.processAndSaveResults(
+        icons,
+        analysisResults,
+        duplicates,
+        inputDir
+      );
 
       spinner.succeed(`Processed ${processedIcons} icons successfully`);
 
@@ -102,7 +140,7 @@ export class IconProcessor {
   }
 
   private async createBackup(inputDir: string, files: string[]): Promise<void> {
-    const backupDir = path.join(inputDir, 'backup', Date.now().toString());
+    const backupDir = path.join(inputDir, "backup", Date.now().toString());
     await FileUtils.ensureDir(backupDir);
 
     const promises = files.map(async (file) => {
@@ -141,21 +179,24 @@ export class IconProcessor {
     return icons;
   }
 
-  private getUniqueIcons(icons: IconInfo[], duplicates: DuplicateGroup[]): IconInfo[] {
+  private getUniqueIcons(
+    icons: IconInfo[],
+    duplicates: DuplicateGroup[]
+  ): IconInfo[] {
     const duplicateIds = new Set<string>();
-    
-    duplicates.forEach(group => {
-      group.duplicates.forEach(duplicate => {
+
+    duplicates.forEach((group) => {
+      group.duplicates.forEach((duplicate) => {
         duplicateIds.add(duplicate.id);
       });
     });
 
-    return icons.filter(icon => !duplicateIds.has(icon.id));
+    return icons.filter((icon) => !duplicateIds.has(icon.id));
   }
 
   private async processAndSaveResults(
-    icons: IconInfo[], 
-    analysisResults: Map<string, any>, 
+    icons: IconInfo[],
+    analysisResults: Map<string, any>,
     duplicates: DuplicateGroup[],
     inputDir: string
   ): Promise<number> {
@@ -173,16 +214,20 @@ export class IconProcessor {
       }
 
       // Save duplicates to separate folder
-      const duplicatesDir = path.join(outputDir, 'duplicates');
+      const duplicatesDir = path.join(outputDir, "duplicates");
       await FileUtils.ensureDir(duplicatesDir);
-      
+
       for (const duplicate of group.duplicates) {
-        await this.saveIconWithMetadata(duplicate, {
-          category: 'duplicate',
-          tags: [],
-          confidence: 1.0,
-          reasoning: `Duplicate of ${group.master.filename}`,
-        }, duplicatesDir);
+        await this.saveIconWithMetadata(
+          duplicate,
+          {
+            category: "duplicate",
+            tags: [],
+            confidence: 1.0,
+            reasoning: `Duplicate of ${group.master.filename}`,
+          },
+          duplicatesDir
+        );
       }
     }
 
@@ -202,8 +247,8 @@ export class IconProcessor {
   }
 
   private async saveIconWithMetadata(
-    icon: IconInfo, 
-    analysis: any, 
+    icon: IconInfo,
+    analysis: any,
     outputDir: string
   ): Promise<void> {
     const contentWithMetadata = SVGUtils.embedMetadata(icon.content, {
@@ -211,16 +256,19 @@ export class IconProcessor {
       tags: analysis.tags,
       confidence: analysis.confidence,
       processedAt: new Date(),
-      version: '1.0.0',
+      version: "1.0.0",
     });
 
     const outputPath = path.join(outputDir, icon.filename);
     await FileUtils.writeFile(outputPath, contentWithMetadata);
   }
 
-  private async saveReport(duplicates: DuplicateGroup[], outputDir: string): Promise<void> {
+  private async saveReport(
+    duplicates: DuplicateGroup[],
+    outputDir: string
+  ): Promise<void> {
     const report = this.duplicateDetector.generateReport(duplicates);
-    const reportPath = path.join(outputDir, 'duplicate-report.txt');
+    const reportPath = path.join(outputDir, "duplicate-report.txt");
     await FileUtils.writeFile(reportPath, report);
   }
 }
