@@ -1,4 +1,4 @@
-import { Config } from '../types';
+import { Config } from '../types/index.js';
 
 export const defaultConfig: Config = {
   ai: {

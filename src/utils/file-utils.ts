@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as path from 'path';
-import { IconInfo } from '../types';
+import { IconInfo } from '../types/index.js';
 
 export class FileUtils {
   static async getFileHash(filePath: string): Promise<string> {

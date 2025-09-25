@@ -1,6 +1,7 @@
 {
   "name": "icon-normalizer-mvp",
   "version": "1.0.0",
+  "type": "module",
   "description": "AI-powered SVG icon categorization and deduplication tool",
   "main": "dist/index.js",
   "bin": {
@@ -8,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node src/cli/index.ts",
+    "dev": "node --loader ts-node/esm src/cli/index.ts",
     "start": "node dist/cli/index.js",
     "test": "jest",
     "test:watch": "jest --watch",

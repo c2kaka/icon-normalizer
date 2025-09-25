@@ -1,0 +1,68 @@
+Duplicate Analysis Report
+========================
+
+Total duplicate groups found: 12
+Total duplicate files: 12
+Exact duplicates: 12 groups
+Similar duplicates: 0 groups
+
+Group 1 (Exact - remove)
+  Master: arrow-left.svg
+  Duplicates: arrow-left.svg
+  Similarity: 100.0%
+
+Group 2 (Exact - remove)
+  Master: arrow-right-copy.svg
+  Duplicates: arrow-right-copy.svg
+  Similarity: 100.0%
+
+Group 3 (Exact - remove)
+  Master: arrow-right-duplicate.svg
+  Duplicates: arrow-right-duplicate.svg
+  Similarity: 100.0%
+
+Group 4 (Exact - remove)
+  Master: arrow-right.svg
+  Duplicates: arrow-right.svg
+  Similarity: 100.0%
+
+Group 5 (Exact - remove)
+  Master: download.svg
+  Duplicates: download.svg
+  Similarity: 100.0%
+
+Group 6 (Exact - remove)
+  Master: email.svg
+  Duplicates: email.svg
+  Similarity: 100.0%
+
+Group 7 (Exact - remove)
+  Master: heart.svg
+  Duplicates: heart.svg
+  Similarity: 100.0%
+
+Group 8 (Exact - remove)
+  Master: home.svg
+  Duplicates: home.svg
+  Similarity: 100.0%
+
+Group 9 (Exact - remove)
+  Master: search.svg
+  Duplicates: search.svg
+  Similarity: 100.0%
+
+Group 10 (Exact - remove)
+  Master: settings.svg
+  Duplicates: settings.svg
+  Similarity: 100.0%
+
+Group 11 (Exact - remove)
+  Master: user-copy.svg
+  Duplicates: user-copy.svg
+  Similarity: 100.0%
+
+Group 12 (Exact - remove)
+  Master: user.svg
+  Duplicates: user.svg
+  Similarity: 100.0%
+

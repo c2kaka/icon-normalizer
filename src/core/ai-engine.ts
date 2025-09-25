@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { AIResponse, Config, IconInfo } from '../types';
+import { AIResponse, Config, IconInfo } from '../types/index.js';
 
 export class AIAnalysisEngine {
   private openai: OpenAI;

@@ -1,5 +1,5 @@
 import * as xml2js from 'xml2js';
-import { IconInfo } from '../types';
+import { IconInfo } from '../types/index.js';
 
 export class SVGUtils {
   static async parseSVG(content: string): Promise<any> {

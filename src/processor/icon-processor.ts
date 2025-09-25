@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs-extra';
+import fs from 'fs-extra';
 import * as path from 'path';
 import { 
   AnalysisResult, 
@@ -6,13 +6,13 @@ import {
   ProcessingOptions, 
   ProcessingResult, 
   DuplicateGroup 
-} from '../types';
-import { FileUtils } from '../utils/file-utils';
-import { SVGUtils } from '../utils/svg-utils';
-import { CryptoUtils } from '../utils/crypto-utils';
-import { AIAnalysisEngine } from '../core/ai-engine';
-import { DuplicateDetector } from '../core/duplicate-detector';
-import { defaultConfig } from '../config';
+} from '../types/index.js';
+import { FileUtils } from '../utils/file-utils.js';
+import { SVGUtils } from '../utils/svg-utils.js';
+import { CryptoUtils } from '../utils/crypto-utils.js';
+import { AIAnalysisEngine } from '../core/ai-engine.js';
+import { DuplicateDetector } from '../core/duplicate-detector.js';
+import { defaultConfig } from '../config/index.js';
 import ora from 'ora';
 
 export class IconProcessor {

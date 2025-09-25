@@ -2,9 +2,9 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { IconProcessor } from '../processor/icon-processor';
-import { ProcessingOptions } from '../types';
-import { defaultConfig } from '../config';
+import { IconProcessor } from '../processor/icon-processor.js';
+import { ProcessingOptions } from '../types/index.js';
+import { defaultConfig } from '../config/index.js';
 
 const program = new Command();
 
@@ -93,7 +93,7 @@ program
         process.exit(1);
       }
 
-      const { IconProcessor } = await import('../processor/icon-processor');
+      const { IconProcessor } = await import('../processor/icon-processor.js');
       const processor = new IconProcessor({ verbose: options.verbose });
       
       // Note: You would need to add a method to analyze single files

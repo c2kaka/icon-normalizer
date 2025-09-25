@@ -1,5 +1,5 @@
-import { IconInfo, DuplicateGroup, ProcessingOptions } from '../types';
-import { CryptoUtils } from '../utils/crypto-utils';
+import { IconInfo, DuplicateGroup, ProcessingOptions } from '../types/index.js';
+import { CryptoUtils } from '../utils/crypto-utils.js';
 
 export class DuplicateDetector {
   private options: ProcessingOptions;

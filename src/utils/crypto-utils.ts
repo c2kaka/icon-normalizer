@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { IconInfo } from '../types';
+import { IconInfo } from '../types/index.js';
 
 export class CryptoUtils {
   static generateId(content: string): string {
