@@ -1,16 +1,28 @@
 import { config } from "dotenv";
 import { Config } from "../types/index.js";
 
-config();
+// 强制覆盖已存在的环境变量，优先使用 .env 文件中的配置
+config({ override: true });
 
 export const defaultConfig: Config = {
   ai: {
-    model: "minicpm-v:latest",
-    apiKey: process.env.OPENAI_API_KEY || "",
-    maxConcurrent: parseInt(process.env.MAX_CONCURRENT || "1"), // 降低默认并发数，防止 Ollama 过载
+    model:
+      process.env.AI_PROVIDER === "openai"
+        ? process.env.OPENAI_MODEL || "gpt-4o"
+        : "minicpm-v:latest",
+    // apiKey: process.env.OPENAI_API_KEY || "",
+    apiKey:
+      process.env.AI_PROVIDER === "openai"
+        ? process.env.OPENAI_API_KEY || ""
+        : "",
+    maxConcurrent: parseInt(process.env.MAX_CONCURRENT_REQUESTS || "1"), // 降低默认并发数，防止 Ollama 过载
     timeout: parseInt(process.env.AI_TIMEOUT || "60000"), // 增加超时时间到 60 秒
     provider: (process.env.AI_PROVIDER as "openai" | "ollama") || "openai", // 默认使用OpenAI
-    baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434", // Ollama服务地址
+    ...(process.env.AI_PROVIDER === "ollama"
+      ? { baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434" }
+      : process.env.BASE_URL
+      ? { baseUrl: process.env.BASE_URL }
+      : {}),
   },
   processing: {
     outputDir: "./processed",

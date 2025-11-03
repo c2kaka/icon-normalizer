@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { AIResponse, Config, IconInfo } from "../types/index.js";
+import { convertSvgToPngBase64 } from "../utils/svg-converter.js";
 
 export class AIAnalysisEngine {
   private openai: OpenAI;
@@ -9,6 +10,7 @@ export class AIAnalysisEngine {
     this.config = config;
     this.openai = new OpenAI({
       apiKey: config.ai.apiKey,
+      baseURL: config.ai.baseUrl,
     });
   }
 
@@ -18,6 +20,11 @@ export class AIAnalysisEngine {
     console.log("prompt: ", prompt);
 
     try {
+      console.log("config: ", this.config);
+
+      // 将 SVG 转换为 PNG Base64
+      const pngBase64 = await convertSvgToPngBase64(iconInfo.content, 512, 512);
+
       const response = await this.openai.chat.completions.create({
         model: this.config.ai.model,
         messages: [
@@ -31,9 +38,7 @@ export class AIAnalysisEngine {
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:image/svg+xml;base64,${Buffer.from(
-                    iconInfo.content
-                  ).toString("base64")}`,
+                  url: `data:image/png;base64,${pngBase64}`,
                 },
               },
             ],
