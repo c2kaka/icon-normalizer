@@ -1,8 +1,0 @@
-Duplicate Analysis Report
-========================
-
-Total duplicate groups found: 0
-Total duplicate files: 0
-Exact duplicates: 0 groups
-Similar duplicates: 0 groups
-

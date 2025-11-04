@@ -1,10 +1,12 @@
 import { Ollama } from "ollama";
 import sharp from "sharp";
 import { AIResponse, Config, IconInfo } from "../types/index.js";
+import { PromptBuilder } from "./prompt-builder.js";
 
 export class OllamaAnalysisEngine {
   private ollama: Ollama;
   private config: Config;
+  private promptBuilder: PromptBuilder;
   private maxRetries: number = 3;
   private retryDelay: number = 1000; // 1秒
 
@@ -13,6 +15,7 @@ export class OllamaAnalysisEngine {
     this.ollama = new Ollama({
       host: config.ai.baseUrl || "http://localhost:11434",
     });
+    this.promptBuilder = new PromptBuilder(config);
   }
 
   /**
@@ -80,7 +83,7 @@ export class OllamaAnalysisEngine {
    * 单次图标分析尝试
    */
   private async analyzeIconOnce(iconInfo: IconInfo): Promise<AIResponse> {
-    const prompt = this.buildPrompt(iconInfo);
+    const prompt = this.promptBuilder.buildIconAnalysisPrompt(iconInfo);
 
     try {
       // Convert SVG to PNG for better compatibility with vision models
@@ -195,58 +198,6 @@ export class OllamaAnalysisEngine {
     }
   }
 
-  private buildPrompt(iconInfo: IconInfo): string {
-    const categories = Object.keys(this.config.categories);
-    const categoryDescriptions = Object.entries(this.config.categories)
-      .map(([cat, subcats]) => `- ${cat}: ${subcats.join(", ")}`)
-      .join("\n");
-
-    // 从文件名中提取有用的信息（移除扩展名和特殊字符）
-    const fileNameWithoutExt = iconInfo.filename.replace(/\.svg$/i, "");
-    const fileNameHints = fileNameWithoutExt
-      .split(/[-_\s]+/)
-      .filter((part) => part.length > 1)
-      .join(", ");
-
-    return `你是一个图标分类专家。请分析这个图标图像并基于以下类别进行分类。
-
-可用分类（Categories）:
-${categoryDescriptions}
-
-【重要元信息】图标文件名: ${iconInfo.filename}
-文件名关键词: ${fileNameHints}
-
-注意：文件名通常包含了图标的核心语义信息，请充分利用文件名来辅助你的分析和分类决策。
-
-重要：你必须只返回有效的 JSON 对象，不要有任何其他内容。不要解释，不要使用 markdown 代码块，只返回纯 JSON。
-
-必需的 JSON 格式：
-{
-  "category": "从上述分类中选择一个",
-  "tags": ["中文标签1", "中文标签2", "中文标签3"],
-  "confidence": 0.95,
-  "reasoning": "中文简短说明"
-}
-
-示例响应（针对一个首页图标）：
-{
-  "category": "navigation",
-  "tags": ["首页", "主页", "房子", "导航"],
-  "confidence": 0.95,
-  "reasoning": "清晰的房子/首页图标，通常用于导航到主页"
-}
-
-规则：
-1. 从上述列表中选择最合适的分类
-2. 如果不确定，使用 "interface" 作为默认分类
-3. 提供 3-5 个相关的中文标签（必须是中文）
-4. 置信度应在 0.0 到 1.0 之间
-5. 推理说明应简洁（一到两句话，必须使用中文）
-6. 输出必须只是有效的 JSON
-7. 充分参考文件名信息来提高分类准确度
-
-现在分析这个图标并只返回 JSON：`;
-  }
 
   private parseAIResponse(content: string): AIResponse {
     try {
@@ -366,7 +317,7 @@ ${categoryDescriptions}
 
     // 如果没有找到明确的分类，尝试从内容和文件名中推断
     if (category === "interface") {
-      const categories = Object.keys(this.config.categories);
+      const categories = this.promptBuilder.getCategories();
 
       // 尝试从内容中找到类别关键词
       for (const cat of categories) {

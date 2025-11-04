@@ -1,10 +1,12 @@
 import OpenAI from "openai";
 import { AIResponse, Config, IconInfo } from "../types/index.js";
 import { convertSvgToPngBase64 } from "../utils/svg-converter.js";
+import { PromptBuilder } from "./prompt-builder.js";
 
 export class AIAnalysisEngine {
   private openai: OpenAI;
   private config: Config;
+  private promptBuilder: PromptBuilder;
 
   constructor(config: Config) {
     this.config = config;
@@ -12,10 +14,11 @@ export class AIAnalysisEngine {
       apiKey: config.ai.apiKey,
       baseURL: config.ai.baseUrl,
     });
+    this.promptBuilder = new PromptBuilder(config);
   }
 
   async analyzeIcon(iconInfo: IconInfo): Promise<AIResponse> {
-    const prompt = this.buildPrompt(iconInfo);
+    const prompt = this.promptBuilder.buildIconAnalysisPrompt(iconInfo);
 
     console.log("prompt: ", prompt);
 
@@ -58,34 +61,6 @@ export class AIAnalysisEngine {
       console.error("AI Analysis failed:", error);
       throw new Error(`AI analysis failed: ${error}`);
     }
-  }
-
-  private buildPrompt(iconInfo: IconInfo): string {
-    const categories = Object.keys(this.config.categories);
-    const categoryDescriptions = Object.entries(this.config.categories)
-      .map(([cat, subcats]) => `- ${cat}: ${subcats.join(", ")}`)
-      .join("\n");
-
-    return `Analyze this SVG icon and classify it according to the following categories:
-
-Categories and subcategories:
-${categoryDescriptions}
-
-Instructions:
-1. Choose the most appropriate category from the list above
-2. Provide relevant tags based on the icon's visual appearance and functionality
-3. Rate your confidence in the classification (0.0-1.0)
-4. Provide brief reasoning for your classification
-
-Icon filename: ${iconInfo.filename}
-
-Respond in JSON format:
-{
-  "category": "chosen_category",
-  "tags": ["tag1", "tag2", "tag3"],
-  "confidence": 0.95,
-  "reasoning": "Brief explanation"
-}`;
   }
 
   private parseAIResponse(content: string): AIResponse {

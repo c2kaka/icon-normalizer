@@ -117,7 +117,17 @@ program
       if (!options.dryRun) {
         console.log(
           chalk.green(
-            `\n💾 Processed icons saved to: ${processingOptions.outputDir}`
+            `\n💾 Processed icons saved to: ${
+              result.outputPath || processingOptions.outputDir
+            }`
+          )
+        );
+        if (result.modelName) {
+          console.log(chalk.cyan(`📦 Model: ${result.modelName}`));
+        }
+        console.log(
+          chalk.cyan(
+            `📄 Analysis summary: ${result.outputPath}/analysis-summary.json`
           )
         );
       }

@@ -18,6 +18,7 @@ export class IconProcessor {
   private aiEngine: any; // 使用any类型以支持不同的AI引擎
   private duplicateDetector: DuplicateDetector;
   private config = defaultConfig;
+  private modelName: string;
 
   constructor(options: ProcessingOptions = {}) {
     this.options = {
@@ -31,6 +32,9 @@ export class IconProcessor {
 
     this.aiEngine = AIEngineFactory.createEngine(this.config);
     this.duplicateDetector = new DuplicateDetector(this.options);
+    
+    // 获取模型名称，用于创建子目录
+    this.modelName = this.config.ai.model.replace(/[/:]/g, '-');
   }
 
   async processDirectory(inputDir: string): Promise<ProcessingResult> {
@@ -128,12 +132,16 @@ export class IconProcessor {
 
       spinner.succeed(`Processed ${processedIcons} icons successfully`);
 
+      const finalOutputPath = path.join(this.options.outputDir!, this.modelName);
+      
       return {
         totalIcons: icons.length,
         processedIcons: processedIcons,
         duplicates,
         processingTime: Date.now() - startTime,
         errors,
+        modelName: this.modelName,
+        outputPath: finalOutputPath,
       };
     } catch (error) {
       spinner.fail(`Processing failed: ${error}`);
@@ -210,20 +218,35 @@ export class IconProcessor {
     inputDir: string
   ): Promise<number> {
     let processedCount = 0;
-    const outputDir = this.options.outputDir!;
+    
+    // 创建基于模型名的输出目录
+    const baseOutputDir = this.options.outputDir!;
+    const modelOutputDir = path.join(baseOutputDir, this.modelName);
+    const iconsDir = path.join(modelOutputDir, "icons");
+    
+    await FileUtils.ensureDir(iconsDir);
 
-    await FileUtils.ensureDir(outputDir);
+    // 用于生成JSON汇总的数据
+    const analysisDataList: any[] = [];
 
     // Process duplicates
     for (const group of duplicates) {
       const analysis = analysisResults.get(group.master.id);
       if (analysis) {
-        await this.saveIconWithMetadata(group.master, analysis, outputDir);
+        await this.saveIconWithMetadata(group.master, analysis, iconsDir);
+        analysisDataList.push({
+          filename: group.master.filename,
+          category: analysis.category,
+          tags: analysis.tags,
+          confidence: analysis.confidence,
+          reasoning: analysis.reasoning,
+          isDuplicate: false,
+        });
         processedCount++;
       }
 
       // Save duplicates to separate folder
-      const duplicatesDir = path.join(outputDir, "duplicates");
+      const duplicatesDir = path.join(modelOutputDir, "duplicates");
       await FileUtils.ensureDir(duplicatesDir);
 
       for (const duplicate of group.duplicates) {
@@ -237,6 +260,16 @@ export class IconProcessor {
           },
           duplicatesDir
         );
+        
+        analysisDataList.push({
+          filename: duplicate.filename,
+          category: "duplicate",
+          tags: [],
+          confidence: 1.0,
+          reasoning: `Duplicate of ${group.master.filename}`,
+          isDuplicate: true,
+          duplicateOf: group.master.filename,
+        });
       }
     }
 
@@ -244,13 +277,24 @@ export class IconProcessor {
     for (const icon of icons) {
       const analysis = analysisResults.get(icon.id);
       if (analysis) {
-        await this.saveIconWithMetadata(icon, analysis, outputDir);
+        await this.saveIconWithMetadata(icon, analysis, iconsDir);
+        analysisDataList.push({
+          filename: icon.filename,
+          category: analysis.category,
+          tags: analysis.tags,
+          confidence: analysis.confidence,
+          reasoning: analysis.reasoning,
+          isDuplicate: false,
+        });
         processedCount++;
       }
     }
 
     // Save processing report
-    await this.saveReport(duplicates, outputDir);
+    await this.saveReport(duplicates, modelOutputDir);
+    
+    // Save JSON summary
+    await this.saveJsonSummary(analysisDataList, modelOutputDir);
 
     return processedCount;
   }
@@ -279,5 +323,39 @@ export class IconProcessor {
     const report = this.duplicateDetector.generateReport(duplicates);
     const reportPath = path.join(outputDir, "duplicate-report.txt");
     await FileUtils.writeFile(reportPath, report);
+  }
+
+  private async saveJsonSummary(
+    analysisDataList: any[],
+    outputDir: string
+  ): Promise<void> {
+    const summary = {
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        modelName: this.config.ai.model,
+        provider: this.config.ai.provider,
+        totalIcons: analysisDataList.length,
+        uniqueIcons: analysisDataList.filter(item => !item.isDuplicate).length,
+        duplicateIcons: analysisDataList.filter(item => item.isDuplicate).length,
+      },
+      categories: this.generateCategoryStats(analysisDataList),
+      icons: analysisDataList,
+    };
+
+    const jsonPath = path.join(outputDir, "analysis-summary.json");
+    await FileUtils.writeFile(jsonPath, JSON.stringify(summary, null, 2));
+  }
+
+  private generateCategoryStats(analysisDataList: any[]): Record<string, number> {
+    const stats: Record<string, number> = {};
+    
+    analysisDataList
+      .filter(item => !item.isDuplicate)
+      .forEach(item => {
+        const category = item.category || "uncategorized";
+        stats[category] = (stats[category] || 0) + 1;
+      });
+    
+    return stats;
   }
 }

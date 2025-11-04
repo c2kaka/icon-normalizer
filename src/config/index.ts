@@ -9,7 +9,7 @@ export const defaultConfig: Config = {
     model:
       process.env.AI_PROVIDER === "openai"
         ? process.env.OPENAI_MODEL || "gpt-4o"
-        : "minicpm-v:latest",
+        : process.env.OLLAMA_MODEL || "minicpm-v:latest",
     // apiKey: process.env.OPENAI_API_KEY || "",
     apiKey:
       process.env.AI_PROVIDER === "openai"
@@ -18,11 +18,7 @@ export const defaultConfig: Config = {
     maxConcurrent: parseInt(process.env.MAX_CONCURRENT_REQUESTS || "1"), // 降低默认并发数，防止 Ollama 过载
     timeout: parseInt(process.env.AI_TIMEOUT || "60000"), // 增加超时时间到 60 秒
     provider: (process.env.AI_PROVIDER as "openai" | "ollama") || "openai", // 默认使用OpenAI
-    ...(process.env.AI_PROVIDER === "ollama"
-      ? { baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434" }
-      : process.env.BASE_URL
-      ? { baseUrl: process.env.BASE_URL }
-      : {}),
+    baseUrl: process.env.BASE_URL || "",
   },
   processing: {
     outputDir: "./processed",

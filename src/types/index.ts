@@ -13,6 +13,16 @@ export interface AnalysisResult {
   };
 }
 
+export interface IconAnalysisData {
+  filename: string;
+  category: string;
+  tags: string[];
+  confidence: number;
+  reasoning?: string;
+  isDuplicate: boolean;
+  duplicateOf?: string;
+}
+
 export interface IconInfo {
   id: string;
   filename: string;
@@ -44,6 +54,8 @@ export interface ProcessingResult {
   duplicates: DuplicateGroup[];
   processingTime: number;
   errors: string[];
+  modelName?: string;
+  outputPath?: string;
 }
 
 export interface Config {
