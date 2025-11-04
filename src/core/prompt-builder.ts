@@ -23,9 +23,8 @@ export class PromptBuilder {
 ${categoryDescriptions}
 
 分析要求：
-1. **优先依据图标的视觉内容**进行分类，包括图标的形状、符号、设计元素等
-2. 仅当图标内容模糊、抽象或难以判断时，才参考文件名作为辅助信息
-3. 文件名仅供参考：${iconInfo.filename}（关键词: ${fileNameHints}）
+1. **依据图标的视觉内容**进行分类，包括图标的形状、符号、设计元素等
+2. 文件名有重要的元信息，请务必结合文件名和视觉内容做分类：${iconInfo.filename}（关键词: ${fileNameHints}）
 
 重要：你必须只返回有效的 JSON 对象，不要有任何其他内容。不要解释，不要使用 markdown 代码块，只返回纯 JSON。
 

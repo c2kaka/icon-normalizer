@@ -1,6 +1,6 @@
 import { Ollama } from "ollama";
-import sharp from "sharp";
 import { AIResponse, Config, IconInfo } from "../types/index.js";
+import { convertSvgToPngBase64 } from "../utils/svg-converter.js";
 import { PromptBuilder } from "./prompt-builder.js";
 
 export class OllamaAnalysisEngine {
@@ -19,20 +19,33 @@ export class OllamaAnalysisEngine {
   }
 
   /**
-   * Convert SVG content to PNG buffer for vision model processing
+   * Convert SVG content to PNG buffer for vision model processing (with preprocessing)
    */
   private async convertSvgToPng(svgContent: string): Promise<Buffer> {
     try {
-      // Create a buffer from the SVG content
-      const svgBuffer = Buffer.from(svgContent, "utf8");
+      // 使用统一的预处理流程
+      const preprocessConfig = this.config.imagePreprocess?.enabled
+        ? {
+            targetSize: this.config.imagePreprocess.targetSize,
+            backgroundColor: this.config.imagePreprocess.backgroundColor,
+            padding: this.config.imagePreprocess.padding,
+            autoCrop: this.config.imagePreprocess.autoCrop,
+            cropThreshold: this.config.imagePreprocess.cropThreshold,
+          }
+        : undefined;
 
-      // Convert SVG to PNG using sharp
-      const pngBuffer = await sharp(svgBuffer)
-        .png()
-        .resize(256, 256) // Resize to a reasonable size for vision model
-        .toBuffer();
+      const targetSize = this.config.imagePreprocess?.enabled
+        ? this.config.imagePreprocess.targetSize
+        : 256;
 
-      return pngBuffer;
+      // 使用 convertSvgToPngBase64 但获取 buffer 而不是 base64
+      const base64 = await convertSvgToPngBase64(
+        svgContent,
+        targetSize,
+        preprocessConfig
+      );
+
+      return Buffer.from(base64, "base64");
     } catch (error) {
       throw new Error(
         `Failed to convert SVG to PNG: ${
@@ -197,7 +210,6 @@ export class OllamaAnalysisEngine {
       );
     }
   }
-
 
   private parseAIResponse(content: string): AIResponse {
     try {

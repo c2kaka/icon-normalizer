@@ -25,8 +25,26 @@ export class AIAnalysisEngine {
     try {
       console.log("config: ", this.config);
 
-      // 将 SVG 转换为 PNG Base64
-      const pngBase64 = await convertSvgToPngBase64(iconInfo.content, 512, 512);
+      // 将 SVG 转换为 PNG Base64（应用图像预处理）
+      const preprocessConfig = this.config.imagePreprocess?.enabled
+        ? {
+            targetSize: this.config.imagePreprocess.targetSize,
+            backgroundColor: this.config.imagePreprocess.backgroundColor,
+            padding: this.config.imagePreprocess.padding,
+            autoCrop: this.config.imagePreprocess.autoCrop,
+            cropThreshold: this.config.imagePreprocess.cropThreshold,
+          }
+        : undefined;
+
+      const targetSize = this.config.imagePreprocess?.enabled
+        ? this.config.imagePreprocess.targetSize
+        : 512;
+
+      const pngBase64 = await convertSvgToPngBase64(
+        iconInfo.content,
+        targetSize,
+        preprocessConfig
+      );
 
       const response = await this.openai.chat.completions.create({
         model: this.config.ai.model,
@@ -48,7 +66,9 @@ export class AIAnalysisEngine {
           },
         ],
         max_tokens: 500,
-        temperature: 0.3,
+        temperature: 0.2,
+        top_p: 0.9,
+        stop: ["```json"],
       });
 
       const content = response.choices[0]?.message?.content;

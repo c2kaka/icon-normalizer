@@ -25,6 +25,14 @@ export const defaultConfig: Config = {
     backup: true,
     similarityThreshold: 0.8,
   },
+  imagePreprocess: {
+    enabled: true, // 默认启用图像预处理
+    targetSize: 256, // 256x256 像素
+    backgroundColor: { r: 255, g: 255, b: 255 }, // 白色背景
+    padding: 10, // 10像素安全边距
+    autoCrop: true, // 启用自动裁剪
+    cropThreshold: 250, // 裁剪阈值
+  },
   categories: {
     interface: ["navigation", "actions", "controls", "input", "output"],
     media: ["play", "pause", "volume", "screen", "camera"],

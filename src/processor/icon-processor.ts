@@ -1,3 +1,4 @@
+import fs from "fs-extra";
 import ora from "ora";
 import * as path from "path";
 import { defaultConfig } from "../config/index.js";
@@ -11,6 +12,7 @@ import {
 } from "../types/index.js";
 import { CryptoUtils } from "../utils/crypto-utils.js";
 import { FileUtils } from "../utils/file-utils.js";
+import { convertSvgToPngBase64 } from "../utils/svg-converter.js";
 import { SVGUtils } from "../utils/svg-utils.js";
 
 export class IconProcessor {
@@ -32,9 +34,9 @@ export class IconProcessor {
 
     this.aiEngine = AIEngineFactory.createEngine(this.config);
     this.duplicateDetector = new DuplicateDetector(this.options);
-    
+
     // 获取模型名称，用于创建子目录
-    this.modelName = this.config.ai.model.replace(/[/:]/g, '-');
+    this.modelName = this.config.ai.model.replace(/[/:]/g, "-");
   }
 
   async processDirectory(inputDir: string): Promise<ProcessingResult> {
@@ -132,8 +134,11 @@ export class IconProcessor {
 
       spinner.succeed(`Processed ${processedIcons} icons successfully`);
 
-      const finalOutputPath = path.join(this.options.outputDir!, this.modelName);
-      
+      const finalOutputPath = path.join(
+        this.options.outputDir!,
+        this.modelName
+      );
+
       return {
         totalIcons: icons.length,
         processedIcons: processedIcons,
@@ -218,12 +223,12 @@ export class IconProcessor {
     inputDir: string
   ): Promise<number> {
     let processedCount = 0;
-    
+
     // 创建基于模型名的输出目录
     const baseOutputDir = this.options.outputDir!;
     const modelOutputDir = path.join(baseOutputDir, this.modelName);
     const iconsDir = path.join(modelOutputDir, "icons");
-    
+
     await FileUtils.ensureDir(iconsDir);
 
     // 用于生成JSON汇总的数据
@@ -260,7 +265,7 @@ export class IconProcessor {
           },
           duplicatesDir
         );
-        
+
         analysisDataList.push({
           filename: duplicate.filename,
           category: "duplicate",
@@ -292,7 +297,7 @@ export class IconProcessor {
 
     // Save processing report
     await this.saveReport(duplicates, modelOutputDir);
-    
+
     // Save JSON summary
     await this.saveJsonSummary(analysisDataList, modelOutputDir);
 
@@ -314,6 +319,59 @@ export class IconProcessor {
 
     const outputPath = path.join(outputDir, icon.filename);
     await FileUtils.writeFile(outputPath, contentWithMetadata);
+
+    // 同时保存预处理后的PNG图片
+    await this.savePngVersion(icon, outputDir);
+  }
+
+  /**
+   * 保存图标的预处理PNG版本
+   * @param icon 图标信息
+   * @param baseOutputDir SVG输出目录（icons 或 duplicates）
+   */
+  private async savePngVersion(
+    icon: IconInfo,
+    baseOutputDir: string
+  ): Promise<void> {
+    try {
+      // PNG统一保存在 processed/png/ 目录下（不按模型分类）
+      const pngDir = path.join(this.options.outputDir!, "png");
+      await FileUtils.ensureDir(pngDir);
+
+      // 使用配置的预处理参数转换
+      const preprocessConfig = this.config.imagePreprocess?.enabled
+        ? {
+            targetSize: this.config.imagePreprocess.targetSize,
+            backgroundColor: this.config.imagePreprocess.backgroundColor,
+            padding: this.config.imagePreprocess.padding,
+            autoCrop: this.config.imagePreprocess.autoCrop,
+            cropThreshold: this.config.imagePreprocess.cropThreshold,
+          }
+        : undefined;
+
+      const targetSize = this.config.imagePreprocess?.enabled
+        ? this.config.imagePreprocess.targetSize
+        : 384;
+
+      const pngBase64 = await convertSvgToPngBase64(
+        icon.content,
+        targetSize,
+        preprocessConfig
+      );
+
+      // 将base64转换为buffer并保存
+      const pngBuffer = Buffer.from(pngBase64, "base64");
+      const pngFilename = icon.filename.replace(/\.svg$/i, ".png");
+      const pngPath = path.join(pngDir, pngFilename);
+
+      await fs.writeFile(pngPath, pngBuffer);
+
+      if (this.options.verbose) {
+        console.log(`  💾 Saved PNG: ${pngFilename}`);
+      }
+    } catch (error) {
+      console.warn(`Failed to save PNG for ${icon.filename}:`, error);
+    }
   }
 
   private async saveReport(
@@ -335,8 +393,10 @@ export class IconProcessor {
         modelName: this.config.ai.model,
         provider: this.config.ai.provider,
         totalIcons: analysisDataList.length,
-        uniqueIcons: analysisDataList.filter(item => !item.isDuplicate).length,
-        duplicateIcons: analysisDataList.filter(item => item.isDuplicate).length,
+        uniqueIcons: analysisDataList.filter((item) => !item.isDuplicate)
+          .length,
+        duplicateIcons: analysisDataList.filter((item) => item.isDuplicate)
+          .length,
       },
       categories: this.generateCategoryStats(analysisDataList),
       icons: analysisDataList,
@@ -346,16 +406,18 @@ export class IconProcessor {
     await FileUtils.writeFile(jsonPath, JSON.stringify(summary, null, 2));
   }
 
-  private generateCategoryStats(analysisDataList: any[]): Record<string, number> {
+  private generateCategoryStats(
+    analysisDataList: any[]
+  ): Record<string, number> {
     const stats: Record<string, number> = {};
-    
+
     analysisDataList
-      .filter(item => !item.isDuplicate)
-      .forEach(item => {
+      .filter((item) => !item.isDuplicate)
+      .forEach((item) => {
         const category = item.category || "uncategorized";
         stats[category] = (stats[category] || 0) + 1;
       });
-    
+
     return stats;
   }
 }

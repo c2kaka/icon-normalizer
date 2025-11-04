@@ -72,6 +72,14 @@ export interface Config {
     backup: boolean;
     similarityThreshold: number;
   };
+  imagePreprocess?: {
+    enabled: boolean;              // 是否启用图像预处理
+    targetSize: number;            // 目标尺寸（正方形边长）
+    backgroundColor: { r: number; g: number; b: number };  // 背景颜色
+    padding: number;               // 安全边距（像素）
+    autoCrop: boolean;             // 是否启用自动裁剪留白
+    cropThreshold: number;         // 裁剪阈值（0-255）
+  };
   categories: Record<string, string[]>;
 }
 
