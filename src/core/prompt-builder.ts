@@ -19,12 +19,13 @@ export class PromptBuilder {
 
     return `你是一个图标分类专家。请主要基于图标的视觉内容进行分析和分类。
 
-可用分类（Categories）:
+可用的参考分类（Categories）:
 ${categoryDescriptions}
 
 分析要求：
 1. **依据图标的视觉内容**进行分类，包括图标的形状、符号、设计元素等
 2. 文件名有重要的元信息，请务必结合文件名和视觉内容做分类：${iconInfo.filename}（关键词: ${fileNameHints}）
+3. 如果实在无法分类到有效的category,可以放在others类目中
 
 重要：你必须只返回有效的 JSON 对象，不要有任何其他内容。不要解释，不要使用 markdown 代码块，只返回纯 JSON。
 
@@ -38,10 +39,10 @@ ${categoryDescriptions}
 
 示例响应（针对一个首页图标）：
 {
-  "category": "navigation",
-  "tags": ["首页", "主页", "房子", "导航"],
+  "category": "operation",
+  "tags": ["创建", "新建",],
   "confidence": 0.95,
-  "reasoning": "图标显示房子形状，典型的首页/主页导航图标"
+  "reasoning": "图标显示加号，典型的操作图标"
 }
 
 规则：
